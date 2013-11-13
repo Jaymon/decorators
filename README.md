@@ -96,7 +96,7 @@ Use pip:
 
 Or, to get the latest and greatest from source:
 
-    pip install ...
+    pip install git+https://github.com/firstopinion/decorators#egg=decorators
 
 ## License
 
