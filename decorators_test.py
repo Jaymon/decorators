@@ -1,6 +1,7 @@
 from unittest import TestCase
 
 import decorators
+from decorators import FuncDecorator
 
 
 class InstanceDecoratorTest(TestCase):
@@ -79,6 +80,22 @@ class ClassDecoratorTest(TestCase):
 
 
 class FuncDecoratorTest(TestCase):
+    def test_callback_param(self):
+        class cbp(FuncDecorator):
+            def decorate(self, func, callback):
+                def decorated(self, *args, **kwargs):
+                    return func(self, *args, **kwargs)
+                return decorated
+
+        class Bar(object):
+            @cbp(lambda *args: (len(args) == 2))
+            def che(self, *args): pass
+
+            @cbp(lambda *args: (len(args) == 1))
+            def che(self, *args): pass
+
+        b = Bar()
+
 
     def test_inspect(self):
         class dec1(decorators.FuncDecorator):
