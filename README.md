@@ -25,9 +25,10 @@ class Foo(object): pass
 
 and each form is a little different to implement. This was frustrating if you wanted to create easy to use decorators where the developer didn't need to worry about `@mydecorator()` working differently than `@mydecorator`.
 
+
 ## decorators module
 
-The `decorators` module allows you to easily create broad decorators that encompass all forms and all types (functions, methods, classes) using the same interface:
+The `decorators.Decorator` class allows you to easily create broad decorators that encompass all forms and all types (functions, methods, classes) using the same interface:
 
 ```python
 import decorators
@@ -66,9 +67,12 @@ class Che(object): pass
 
 Now, your decorator can decorate functions or classes, pass in arguments, or not, and you never have to worry about the subtle differences between the decorators, and best of all, you don't have to duplicate code.
 
+
 ## Other decorators
 
 The `Decorator` class is good if you want to create a decorator that is totally flexible, if you want to enforce your decorator only being used for a function/method, you can use `FuncDecorator`. If you want to only decorate a class, use `ClassDecorator`, and if you want to decorate every instance of a class, use `InstanceDecorator`.
+
+Whatever child class you use, you override the `decorate` method to return your decorator function:
 
 ```python
 import decorators
@@ -88,6 +92,7 @@ def foo(): pass
 class Foo(object): pass
 ```
 
+
 ## Installation
 
 Use pip:
@@ -97,8 +102,4 @@ Use pip:
 Or, to get the latest and greatest from source:
 
     pip install git+https://github.com/firstopinion/decorators#egg=decorators
-
-## License
-
-MIT
 

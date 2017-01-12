@@ -1,12 +1,12 @@
 from unittest import TestCase
 
 import decorators
-from decorators import FuncDecorator
+from decorators import FuncDecorator, ClassDecorator, InstanceDecorator
 
 
 class InstanceDecoratorTest(TestCase):
     def test_on_instance(self):
-        class dec(decorators.InstanceDecorator):
+        class dec(InstanceDecorator):
             def decorate(self, instance, *dec_a, **dec_kw):
                 if dec_a:
                     instance.val = dec_a[0]
@@ -78,9 +78,61 @@ class ClassDecoratorTest(TestCase):
         self.assertEqual(5, r)
         self.assertEqual((4, 5, 6), f.vals)
 
+    def test_callback_param_explicit(self):
+        class cbp(ClassDecorator):
+            required_args = True
+            def decorate(self, klass, oklass):
+                return klass
+
+        class Che(object): pass
+
+        @cbp(Che)
+        class Bar(object): pass
+
+        b = Bar() # this shouldn't error, if it does we failed
+
+    def test_callback_param_auto(self):
+        class cbp(ClassDecorator):
+            def decorate(self, klass, oklass):
+                return klass
+
+        class Che(object): pass
+
+        @cbp(Che)
+        class Bar(object): pass
+
+        b = Bar() # this shouldn't error, if it does we failed
 
 class FuncDecoratorTest(TestCase):
-    def test_callback_param(self):
+    def test_default_value(self):
+        class dv(FuncDecorator):
+            def decorate(self, func, bar=2):
+                def decorated(*args, **kwargs):
+                    return func(bar, *args, **kwargs)
+                return decorated
+
+        @dv
+        def foo(bar): return bar
+        self.assertEqual(2, foo())
+
+        @dv()
+        def foo(bar): return bar
+        self.assertEqual(2, foo())
+
+    def test_callback_param_auto_2(self):
+        class cbp(FuncDecorator):
+            def decorate(self, func, callback):
+                def decorated(self, *args, **kwargs):
+                    return callback(func(self, *args, **kwargs))
+                return decorated
+
+        @cbp(lambda x: x * 2)
+        def che(x, y=0): return x + y
+
+        self.assertEqual(4, che(2))
+        self.assertEqual(6, che(2, 1))
+
+    def test_callback_param_auto(self):
         class cbp(FuncDecorator):
             def decorate(self, func, callback):
                 def decorated(self, *args, **kwargs):
@@ -89,13 +141,33 @@ class FuncDecoratorTest(TestCase):
 
         class Bar(object):
             @cbp(lambda *args: (len(args) == 2))
-            def che(self, *args): pass
+            def che2(self, *args): return 2
 
             @cbp(lambda *args: (len(args) == 1))
-            def che(self, *args): pass
+            def che1(self, *args): return 1
 
         b = Bar()
+        self.assertEqual(2, b.che2())
+        self.assertEqual(1, b.che1())
 
+    def test_callback_param_explicit(self):
+        class cbp(FuncDecorator):
+            required_args = True
+            def decorate(self, func, callback):
+                def decorated(self, *args, **kwargs):
+                    return func(self, *args, **kwargs)
+                return decorated
+
+        class Bar(object):
+            @cbp(lambda *args: (len(args) == 2))
+            def che2(self, *args): return 2
+
+            @cbp(lambda *args: (len(args) == 1))
+            def che1(self, *args): return 1
+
+        b = Bar()
+        self.assertEqual(2, b.che2())
+        self.assertEqual(1, b.che1())
 
     def test_inspect(self):
         class dec1(decorators.FuncDecorator):
