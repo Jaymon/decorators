@@ -8,18 +8,33 @@ import re
 import os
 
 name = "decorators"
-with open(os.path.join("{}.py".format(name))) as f:
-    version = re.search("^__version__\s*=\s*[\'\"]([^\'\"]+)", f.read(), flags=re.I | re.M).group(1)
+kwargs = {"name": name}
+
+def read(path):
+    if os.path.isfile(path):
+        with open(path, encoding='utf-8') as f:
+            return f.read()
+    return ""
+
+
+vpath = os.path.join(name, "__init__.py")
+if os.path.isfile(vpath):
+    kwargs["packages"] = find_packages(exclude=["tests", "tests.*", "examples"])
+else:
+    vpath = "{}.py".format(name)
+    kwargs["py_modules"] = [name]
+kwargs["version"] = re.search(r"^__version__\s*=\s*[\'\"]([^\'\"]+)", read(vpath), flags=re.I | re.M).group(1)
+
+
+kwargs["long_description"] = read('README.rst')
 
 
 setup(
-    name=name,
-    version=version,
     description='Quickly create flexible Python decorators',
+    keywords="decorators decorator @ at-syntax"
     author='Jay Marcyes',
     author_email='jay@marcyes.com',
-    url='http://github.com/firstopinion/{}'.format(name),
-    py_modules=[name],
+    url='http://github.com/jaymon/{}'.format(name),
     license="MIT",
     classifiers=[ # https://pypi.python.org/pypi?:action=list_classifiers
         'Development Status :: 4 - Beta',
@@ -31,4 +46,5 @@ setup(
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
     ],
+    **kwargs
 )
