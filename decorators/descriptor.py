@@ -5,6 +5,57 @@ from .compat import *
 from .base import FuncDecorator
 
 
+class classproperty(property):
+    """
+    allow a class property to exist on the Orm
+
+    NOTE -- this is read only, you can't write to the property
+
+    example --
+        class Foo(object):
+            @classproperty
+            def bar(cls):
+                return 42
+        Foo.bar # 42
+
+    http://stackoverflow.com/questions/128573/using-property-on-classmethods
+    http://stackoverflow.com/questions/5189699/how-can-i-make-a-class-property-in-python
+    http://docs.python.org/2/reference/datamodel.html#object.__setattr__
+    """
+    def __init__(self, fget, doc=None):
+        super(classproperty, self).__init__(fget, doc=doc)
+
+    def __get__(self, instance, instance_class=None):
+        return self.fget(instance_class)
+
+#     def __get__(self, instance, instance_class=None):
+#         pout.i(self.fget)
+#         if self.fget is None:
+#             raise AttributeError("unreadable attribute")
+#         return self.fget(instance_class)
+
+#     def __set__(self, instance_class, value):
+#         pout.h()
+#         if self.fset is None:
+#             raise AttributeError("can't set attribute")
+#         self.fset(instance_class, value)
+
+#     def __delete__(self, instance_class):
+#         if self.fdel is None:
+#             raise AttributeError("can't delete attribute")
+#         self.fdel(instance_class)
+
+#     def getter(self, fget):
+#         #raise TypeError("@classproperty is readonly due to python's architecture")
+#         self.fget = fget
+#         return self
+
+    def setter(self, fset):
+        raise TypeError("classproperty is readonly due to python's architecture")
+
+    def deleter(self, fdel):
+        raise TypeError("classproperty is readonly due to python's architecture")
+
 
 class property(FuncDecorator):
     def decorate(self, method, *args, **kwargs):

@@ -10,7 +10,7 @@ __version__ = "0.1.1"
 
 class Decorator(object):
     """
-    A decorator class that you can be extended that allows you to do normal decorators
+    A decorator class that can be extended that allows you to do normal decorators
     with no arguments, or a decorator with arguments
 
     May be invoked as a simple, argument-less decorator (eg, `@decorator`) or

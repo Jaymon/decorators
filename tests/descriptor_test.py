@@ -3,9 +3,53 @@ from __future__ import unicode_literals, division, print_function, absolute_impo
 from collections import Counter
 
 from decorators.compat import *
-from decorators import property
+from decorators import property, classproperty
 
 from . import TestCase, testdata
+
+
+class ClassPropertyTest(TestCase):
+    def test_readonly(self):
+        class Foo(object):
+            @classproperty
+            def bar(cls):
+                return 42
+
+        self.assertEqual(42, Foo.bar)
+
+        f = Foo()
+        self.assertEqual(42, f.bar)
+
+        Foo.bar = 43
+        self.assertEqual(43, f.bar)
+
+        f.bar = 44
+        self.assertEqual(44, f.bar)
+
+        with self.assertRaises(TypeError):
+            class Foo(object):
+                @classproperty
+                def bar(cls):
+                    return 42
+
+                @bar.setter
+                def bar(cls, v):
+                    pass
+
+        with self.assertRaises(TypeError):
+            class Foo(object):
+                @classproperty
+                def bar(cls):
+                    return 42
+
+                @bar.deleter
+                def bar(cls, v):
+                    pass
+
+        class Foo(object):
+            bar = classproperty(lambda *_: 45, "this is the doc")
+
+        self.assertEqual(45, Foo.bar)
 
 
 class PropertyTest(TestCase):
