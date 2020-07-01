@@ -76,15 +76,15 @@ class PropertyTest(TestCase):
         f = FooPropInit()
         self.assertEqual(1, f.v)
 
-        f.v = 6
-        self.assertEqual(6, f.v)
+        with self.assertRaises(AttributeError):
+            f.v = 6
 
-        del f.v
-        self.assertEqual(1, f.v)
+        with self.assertRaises(AttributeError):
+            del f.v
 
     def test_decorate_call(self):
         class FooPropInit(object):
-            @property()
+            @property(cached="_v")
             def v(self):
                 return 1
 
@@ -97,10 +97,10 @@ class PropertyTest(TestCase):
         del f.v
         self.assertEqual(1, f.v)
 
-    def test_no_allow_empty(self):
+    def test_cached_no_allow_empty(self):
         counts = Counter()
         class PAE(object):
-            @property(allow_empty=False)
+            @property(cached="_foo", allow_empty=False)
             def foo(self):
                 counts["fget"] += 1
                 return 0
@@ -115,13 +115,13 @@ class PropertyTest(TestCase):
         self.assertEqual(1, c.foo)
         self.assertEqual(3, counts["fget"])
 
-    def test_setter(self):
+    def test_cached_setter(self):
         class WPS(object):
             foo_get = False
             foo_set = False
             foo_del = False
 
-            @property(cached=True)
+            @property(cached="_foo")
             def foo(self):
                 self.foo_get = True
                 return 1
@@ -129,15 +129,12 @@ class PropertyTest(TestCase):
             @foo.setter
             def foo(self, val):
                 self.foo_set = True
-                #pout.v(type(self).foo)
-                type(self).foo.value = val
-                #self._foo = val
+                self._foo = val
 
             @foo.deleter
             def foo(self):
                 self.foo_del = True
-                #del(self._foo)
-                del type(self).foo.value
+                del(self._foo)
 
         c = WPS()
 
@@ -153,9 +150,9 @@ class PropertyTest(TestCase):
         self.assertTrue(c.foo_set)
         self.assertTrue(c.foo_del)
 
-    def test_sharing(self):
+    def test_cached_sharing(self):
         class Foo(object):
-            @property(cached=True)
+            @property(cached="_bar")
             def bar(self):
                 return 1
 
@@ -166,15 +163,12 @@ class PropertyTest(TestCase):
         self.assertEqual(2, f.bar)
 
         f2 = Foo()
-        self.assertEqual(1, f.bar)
+        self.assertEqual(1, f2.bar)
 
+        f2.bar = 3
+        self.assertNotEqual(f.bar, f2.bar)
 
-
-
-
-
-class XPropertyTest(TestCase):
-    def test__property__strange_behavior(self):
+    def test_strange_behavior(self):
         class BaseFoo(object):
             def __init__(self):
                 setattr(self, 'bar', None)
@@ -183,7 +177,7 @@ class XPropertyTest(TestCase):
                 super(BaseFoo, self).__setattr__(n, v)
 
         class Foo(BaseFoo):
-            @endpoints.decorators._property(allow_empty=False)
+            @property(cached="_bar", allow_empty=False)
             def bar(self):
                 return 1
 
@@ -193,17 +187,17 @@ class XPropertyTest(TestCase):
         f.bar = 2
         self.assertEqual(2, f.bar)
 
-    def test__property___dict__direct(self):
-        """
-        this is a no win situation
-        if you have a bar _property and a __setattr__ that modifies directly then
-        the other _property values like __set__ will not get called, and you can't
-        have _property.__get__ look for the original name because there are times
-        when you want your _property to override a parent's original value for the
+    def test___dict___direct(self):
+        """this is a no win situation
+
+        if you have a bar property and a __setattr__ that modifies directly then
+        the other property methods like __set__ will not get called, and you can't
+        have property.__get__ look for the original name because there are times
+        when you want your property to override a parent's original value for the
         property, so I've chosen to just ignore this case and not support it
         """
         class Foo(object):
-            @endpoints.decorators._property
+            @property(cached="_bar")
             def bar(self):
                 return 1
             def __setattr__(self, field_name, field_val):
@@ -214,42 +208,42 @@ class XPropertyTest(TestCase):
         f.bar = 2 # this will be ignored
         self.assertEqual(1, f.bar)
 
-    def test__property(self):
+    def test_lifecycle(self):
         class WP(object):
-            count_foo = 0
-
-            @endpoints.decorators._property(True)
+            counts = Counter()
+            @property
             def foo(self):
-                self.count_foo += 1
+                self.counts["foo"] += 1
                 return 1
 
-            @endpoints.decorators._property(read_only=True)
+            @property()
             def baz(self):
+                self.counts["baz"] += 1
                 return 2
 
-            @endpoints.decorators._property()
+            @property(cached="_bar")
             def bar(self):
+                self.counts["bar"] += 1
                 return 3
 
-            @endpoints.decorators._property
+            @property(cached="_che")
             def che(self):
+                self.counts["che"] += 1
                 return 4
 
         c = WP()
         r = c.foo
         self.assertEqual(1, r)
-        self.assertEqual(1, c._foo)
         with self.assertRaises(AttributeError):
             c.foo = 2
         with self.assertRaises(AttributeError):
             del(c.foo)
         c.foo
         c.foo
-        self.assertEqual(1, c.count_foo)
+        self.assertEqual(3, c.counts["foo"])
 
         r = c.baz
         self.assertEqual(2, r)
-        self.assertEqual(2, c._baz)
         with self.assertRaises(AttributeError):
             c.baz = 3
         with self.assertRaises(AttributeError):
@@ -264,6 +258,7 @@ class XPropertyTest(TestCase):
         del(c.bar)
         r = c.bar
         self.assertEqual(3, r)
+        self.assertEqual(2, c.counts["bar"])
 
         r = c.che
         self.assertEqual(4, r)

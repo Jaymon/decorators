@@ -7,8 +7,8 @@ from .base import FuncDecorator
 
 
 class property(FuncDecorator):
-    def decorate(self, func, *args, **kwargs):
-        return self.getter(func)
+    def decorate(self, method, *args, **kwargs):
+        return self.getter(method)
 
 #         def wrapper(*args, **kwargs):
 #             pout.v(args, kwargs)
@@ -19,53 +19,95 @@ class property(FuncDecorator):
         return func
 
     def __init__(self, fget=None, fset=None, fdel=None, doc=None, **kwargs):
-        self.fget = fget or self.default_fget
-        self.fset = fset or self.default_fset
-        self.fdel = fdel or self.default_fdel
-        if doc is None and fget is not None:
-            doc = fget.__doc__
-        self.__doc__ = doc
+        self.getter(fget)
+        self.setter(fset)
+        self.deleter(fdel)
 
-        self.cached = kwargs.pop("cached", False)
-        self.allow_empty = kwargs.pop('allow_empty', True)
+        if doc:
+            self.__doc__ = doc
+
+        self.name = kwargs.pop("cached", kwargs.pop("cache", ""))
+        self.cached = True if self.name else False
+        if "allow_empty" in kwargs:
+            if self.cached:
+                self.allow_empty = kwargs.pop('allow_empty', True)
+            else:
+                raise ValueError("Cannot set allow_empty with cached")
 
     def __get__(self, instance, instance_class=None):
         # if there is no instance then they are requesting the property from the class
-        pout.v(instance, instance_class)
         if instance is None:
             return self
 
-        if self.fget is None:
-            raise AttributeError("Unreadable attribute")
+        if self.cached:
+            if self.name in instance.__dict__:
+                value = instance.__dict__[self.name]
+                if not value and not self.allow_empty:
+                    if self.fget:
+                        value = self.fget(instance)
+                        if value or self.allow_empty:
+                            self.__set__(instance, value)
 
-        try:
-            value = self.default_fget(instance)
+                    else:
+                        raise AttributeError("Unreadable attribute")
 
-        except AttributeError:
-            value = self.fget(instance)
-            if self.cached and (value or self.allow_empty):
-                self.fset(instance, value)
-                #self.value = value
+            else:
+                if self.fget:
+                    value = self.fget(instance)
+                    if value or self.allow_empty:
+                        self.__set__(instance, value)
+
+                else:
+                    raise AttributeError("Unreadable attribute")
+
+        else:
+            if self.fget:
+                value = self.fget(instance)
+
+            else:
+                raise AttributeError("Unreadable attribute")
 
         return value
         #return self.fget(instance)
 
     def __set__(self, instance, value):
-        if self.fset is None:
-            raise AttributeError("Can't set attribute")
+        if self.cached:
+            if self.fset:
+                self.fset(instance, value)
+#                 v = self.fset(instance, value)
+#                 if v is not None or v != value:
+#                     instance.__dict__[self.name] = v
+# 
+#                 else:
+#                     instance.__dict__[self.name] = value
 
-        self.fset(instance, value)
-#         if self.cached:
-#             v = self.fset(instance, value)
-#             if v is not None and v != value:
-#                 self.value = v
-#             else:
-#                 self.value = value
+            else:
+                instance.__dict__[self.name] = value
+
+        else:
+            if self.fset is None:
+                raise AttributeError("Can't set attribute")
+
+            self.fset(instance, value)
 
     def __delete__(self, instance):
-        if self.fdel is None:
-            raise AttributeError("Can't delete attribute")
-        self.fdel(instance)
+        if self.cached:
+            if self.fdel:
+                #instance.__dict__.pop(self.name, None)
+                self.fdel(instance)
+
+            else:
+                if self.name in instance.__dict__:
+                    instance.__dict__.pop(self.name, None)
+
+                else:
+                    raise AttributeError("Can't delete attribute")
+
+        else:
+            if self.fdel:
+                self.fdel(instance)
+            else:
+                raise AttributeError("Can't delete attribute")
 #         try:
 #             del self.value
 #         except AttributeError:
@@ -86,15 +128,15 @@ class property(FuncDecorator):
         return self
         #return type(self)(self.fget, self.fset, fdel, self.__doc__)
 
-    def default_fget(self, instance):
-        return self.value
-
-    def default_fset(self, instance, value):
-        pout.v("fset", value)
-        self.value = value
-
-    def default_fdel(self, instance):
-        del self.value
+#     def default_fget(self, instance):
+#         return self.value
+# 
+#     def default_fset(self, instance, value):
+#         pout.v("fset", value)
+#         self.value = value
+# 
+#     def default_fdel(self, instance):
+#         del self.value
 
 
 
