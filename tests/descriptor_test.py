@@ -313,5 +313,29 @@ class PropertyTest(TestCase):
         r = c.che
         self.assertEqual(4, r)
 
+    def test_issue_4(self):
+        """https://github.com/Jaymon/decorators/issues/4"""
+        class Foo(object):
+            @property
+            def che(self):
+                raise AttributeError("This error is caught")
 
+        class Bar(object):
+            @property
+            def che(self):
+                raise AttributeError("This error is lost")
+            @property
+            def baz(self):
+                raise KeyError("_baz")
+            def __getattr__(self, k):
+                return 1
 
+        b = Bar()
+        with self.assertRaises(ValueError):
+            b.che
+        with self.assertRaises(KeyError):
+            b.baz
+
+        f = Foo()
+        with self.assertRaises(AttributeError):
+            f.che

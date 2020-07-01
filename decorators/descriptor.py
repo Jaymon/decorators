@@ -85,6 +85,25 @@ class property(FuncDecorator):
             else:
                 raise ValueError("Cannot set allow_empty with cached")
 
+    def get_value(self, instance):
+        if self.fget:
+            try:
+                return self.fget(instance)
+
+            except AttributeError as e:
+                # if there is a __getattr__ then this AttributeError could get
+                # swallowed and so let's reraise it as a ValueError
+                # fixes https://github.com/Jaymon/decorators/issues/4
+                if hasattr(instance, "__getattr__"):
+                    exc_info = sys.exc_info()
+                    reraise(ValueError, e, exc_info[2])
+
+                else:
+                    raise
+
+        else:
+            raise AttributeError("Unreadable attribute")
+
     def __get__(self, instance, instance_class=None):
         # if there is no instance then they are requesting the property from the class
         if instance is None:
@@ -94,29 +113,18 @@ class property(FuncDecorator):
             if self.name in instance.__dict__:
                 value = instance.__dict__[self.name]
                 if not value and not self.allow_empty:
-                    if self.fget:
-                        value = self.fget(instance)
-                        if value or self.allow_empty:
-                            self.__set__(instance, value)
-
-                    else:
-                        raise AttributeError("Unreadable attribute")
-
-            else:
-                if self.fget:
+                    value = self.get_value(instance)
                     value = self.fget(instance)
                     if value or self.allow_empty:
                         self.__set__(instance, value)
 
-                else:
-                    raise AttributeError("Unreadable attribute")
+            else:
+                value = self.get_value(instance)
+                if value or self.allow_empty:
+                    self.__set__(instance, value)
 
         else:
-            if self.fget:
-                value = self.fget(instance)
-
-            else:
-                raise AttributeError("Unreadable attribute")
+            value = self.get_value(instance)
 
         return value
         #return self.fget(instance)

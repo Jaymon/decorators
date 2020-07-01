@@ -26,12 +26,12 @@ if is_py2:
     except ImportError:
         from StringIO import StringIO
 
-    # shamelously ripped from six https://bitbucket.org/gutworth/six
-    exec("""def reraise(tp, value, tb=None):
+    # shamelously ripped from six https://github.com/benjaminp/six
+    exec("""def reraise(exception_class, e, traceback=None):
         try:
-            raise tp, value, tb
+            raise exception_class, e, traceback
         finally:
-            tb = None
+            traceback = None
     """)
 
     from SimpleHTTPServer import SimpleHTTPRequestHandler
@@ -54,17 +54,26 @@ elif is_py3:
     from urllib import parse as urlparse
     import builtins
 
-    # ripped from six https://bitbucket.org/gutworth/six
-    def reraise(tp, value, tb=None):
+    # ripped from six https://github.com/benjaminp/six
+    def reraise(exception_class, e, traceback=None):
+        """the 3 params correspond to the return value of sys.exc_info()
+
+        https://docs.python.org/3/library/sys.html#sys.exc_info
+
+        :param exception_class: BaseException, the class of the exception to reraise
+        :param e: BaseException instance, the actual exception instance
+        :param traceback: traceback, the stack trace
+        """
         try:
-            if value is None:
-                value = tp()
-            if value.__traceback__ is not tb:
-                raise value.with_traceback(tb)
-            raise value
+#             if value is None:
+#                 value = tp()
+            e = exception_class("" if e is None else e)
+            if e.__traceback__ is not traceback:
+                raise e.with_traceback(traceback)
+            raise e
         finally:
-            value = None
-            tb = None
+            e = None
+            traceback = None
 
 
 Str = unicode if is_py2 else str
