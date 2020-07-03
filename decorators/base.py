@@ -3,9 +3,34 @@ from __future__ import unicode_literals, division, print_function, absolute_impo
 import functools
 import inspect
 import re
+import logging
 
 
-__version__ = "0.1.1"
+from .compat import *
+
+
+logger = logging.getLogger(__name__)
+
+
+
+class Decorator(object):
+    def __new__(cls, *args, **kwargs):
+        pass
+
+    def is_class(self, arg):
+        return isinstance(arg, type)
+
+    def is_function(self, arg)
+        return inspect.isroutine(arg)
+
+    def is_wrapped_call(self, *args, **kwargs):
+        pass
+
+
+
+
+
+
 
 
 class Decorator(object):
@@ -38,90 +63,150 @@ class Decorator(object):
     wrapped_class = False
     """this decorator is wrapping a class, auto-discovered"""
 
-    required_args = False
+#     required_args = False
     """set this to True in child if the decorator requires arguments (eg, @dec(...))"""
+
+    @classmethod
+    def created_with_args(cls, *args, **kwargs):
+        """True if decorator was created with () or (...)"""
+        # short-circuit introspection if there is more than one passed in
+        # argument because they are absolutely decorator arguments
+        if len(args) > 1 or len(kwargs) > 1:
+            return True
+
+        frames = inspect.stack()
+        dec_call = ""
+        has_decorator_args = False
+
+        for f in frames:
+            dec_call = "\n".join(f[4]).strip()
+            pout.v(dec_call)
+            if dec_call.startswith("@"):
+            #if "@" in dec_call:
+                if "(" in dec_call:
+                    has_decorator_args = True
+
+                #break
+
+            elif dec_call.startswith("class "):
+                has_decorator_args = False
+                #break
+
+            else:
+                dec_call = ""
+
+        if not dec_call:
+            has_decorator_args = True
+
+        return has_decorator_args
+
 
     def __new__(cls, *args, **kwargs):
         instance = super(Decorator, cls).__new__(cls)
+        if len(args) == 1:
+            raise ValueError("foo")
 
-        instance.create_args = args
-        instance.create_kwargs = kwargs
+        pout.b(cls.__name__)
+        pout.v(args, kwargs)
 
-        if instance.is_wrapped_arg(*args, **kwargs):
-            instance.set_wrapped(args[0])
-            args = ()
+        instance.wrapped = None
+        instance.args = ()
+        instance.kwargs = {}
+
+        if cls.created_with_args(*args, **kwargs):
+            logger.debug("Decorator {}.__new__() with arguments".format(cls.__name__))
+            instance.args = args
+            instance.kwargs = kwargs
 
         else:
-            instance.wrapped = None
+            logger.debug("Wrapping {}.__new__() argument".format(cls.__name__))
+            #logger.debug("Decorator {}.__new__() without arguments".format(cls.__name__))
+            instance.set_wrapped(args[0])
 
-        instance.args = args
-        instance.kwargs = kwargs
-
-        # here we do some magic stuff to return the class back in case this is a
-        # class decorator, we do this so we don't wrap the class, thus causing
-        # things like isinstance() checks to fail, and also not making class
-        # variables available
-        if instance.wrapped_class:
-            try:
-                instance = instance.decorate_class(
-                    instance.wrapped,
-                    *instance.args,
-                    **instance.kwargs
-                )
-            except TypeError as e:
-                # recover from is_wrapped_arg misclassifying the call
-                # NOTE -- this is super hacky
-                e_msg = str(e)
-                if "arguments" in e_msg and "takes" in e_msg \
-                    or ("argument" in e_msg and "missing" in e_msg):
-                    instance.wrapped = None
-                    instance.args = instance.create_args
-                    instance.kwargs = instance.create_kwargs
-                else:
-                    raise
+            # here we do some magic stuff to return the class back in case this is a
+            # class decorator, we do this so we don't wrap the class, thus causing
+            # things like isinstance() checks to fail, and also not making class
+            # variables available
+            if instance.wrapped_class:
+                logger.debug("Decorator {}.__new__() returning class".format(cls.__name__))
+                instance = instance.decorate_class(instance.wrapped)
 
         return instance
 
-    def is_wrapped_arg(self, *args, **kwargs):
-        """decide if this decorator was called with arguments (eg, @dec(...)) or
-        without (eg, @dec) so we can take the correct path when the decorator is
-        invoked
+#     def __init__(self, *args, **kwargs):
+#         pout.b("init")
+#         self.created_with_args(*args, **kwargs)
+#         pout.b(2)
 
-        for the most part this works except for the case where you have one callback
-        or class as the only passed in method to the decorator (eg, @dec(lambda x: x)),
-        you can get around it by using named arguments (eg, @dec(callback=lambda x: x))
-        or by setting required_args class property to True in your child decorator,
-        otherwise this will try and autodiscover and have to recover when the
-        decorator is actually invoked. I wracked my brain trying to figure out a
-        better way to do this and I couldn't come up with anything and after the
-        hours I've spent on it I'm just not sure there is a way to really know
 
-        :param *args: any positional values passed into __new__ or __call__
-        :param **kwargs: any named values passed into __new__ or __call__
-        :returns: boolean
-        """
-        ret = False
-        if len(args) == 1 and len(kwargs) == 0:
-            #pout.v(args, self, isinstance(args[0], type), isinstance(args[0], FuncDecorator))
-            ret = inspect.isfunction(args[0]) \
-                or isinstance(args[0], type) \
-                or isinstance(args[0], Decorator)
-            if ret:
-                ret = not self.required_args
+
+#         instance.create_args = args
+#         instance.create_kwargs = kwargs
+# 
+#         if instance.is_wrapped_arg(*args, **kwargs):
+#             instance.set_wrapped(args[0])
+#             args = ()
+# 
+#         else:
+#             instance.wrapped = None
+# 
+#         instance.args = args
+#         instance.kwargs = kwargs
+# 
+#         # here we do some magic stuff to return the class back in case this is a
+#         # class decorator, we do this so we don't wrap the class, thus causing
+#         # things like isinstance() checks to fail, and also not making class
+#         # variables available
+#         if instance.wrapped_class:
+#             try:
+#                 instance = instance.decorate_class(
+#                     instance.wrapped,
+#                     *instance.args,
+#                     **instance.kwargs
+#                 )
+#             except TypeError as e:
+#                 # recover from is_wrapped_arg misclassifying the call
+#                 # NOTE -- this is super hacky
+#                 e_msg = String(e)
+#                 if "arguments" in e_msg and "takes" in e_msg \
+#                     or ("argument" in e_msg and "missing" in e_msg):
+#                     instance.wrapped = None
+#                     instance.args = instance.create_args
+#                     instance.kwargs = instance.create_kwargs
+#                 else:
+#                     raise
+# 
+#         return instance
+
+#     def is_wrapped_arg(self, *args, **kwargs):
+#         """decide if this decorator was called with arguments (eg, @dec(...)) or
+#         without (eg, @dec) so we can take the correct path when the decorator is
+#         invoked
+# 
+#         for the most part this works except for the case where you have one callback
+#         or class as the only passed in method to the decorator (eg, @dec(lambda x: x)),
+#         you can get around it by using named arguments (eg, @dec(callback=lambda x: x))
+#         or by setting required_args class property to True in your child decorator,
+#         otherwise this will try and autodiscover and have to recover when the
+#         decorator is actually invoked. I wracked my brain trying to figure out a
+#         better way to do this and I couldn't come up with anything and after the
+#         hours I've spent on it I'm just not sure there is a way to really know
+# 
+#         :param *args: any positional values passed into __new__ or __call__
+#         :param **kwargs: any named values passed into __new__ or __call__
+#         :returns: boolean
+#         """
+#         ret = False
+#         if not self.required_args:
+#             if len(args) == 1 and len(kwargs) == 0:
+#                 #pout.v(args, self, isinstance(args[0], type), isinstance(args[0], FuncDecorator))
+#                 ret = inspect.isfunction(args[0]) \
+#                     or isinstance(args[0], type) \
+#                     or isinstance(args[0], Decorator)
 #                 if ret:
-#                     frames = inspect.getouterframes(inspect.currentframe())
-#                     if len(frames) >= 3:
-#                         dec_frame = frames[2]
-#                         lines = "".join(dec_frame[4]).strip()
-#                         # we have 3 possibilities here:
-#                         # 1) @dec
-#                         # 2) @dec(...)
-#                         # 3) something else
-#                         # this will return True for 1 and 3
-#                         if re.match(r"^@", lines):
-#                             ret = "(" not in lines
-
-        return ret
+#                     ret = not self.required_args
+# 
+#         return ret
 
     def set_wrapped(self, wrapped):
         """This will decide what wrapped is and set .wrapped_func or .wrapped_class
@@ -140,7 +225,7 @@ class Decorator(object):
         elif isinstance(wrapped, type):
             self.wrapped_class = True
 
-    def __get__(self, instance, klass):
+    def __get__(self, instance, instance_class):
         """
         having this method here turns the class into a descriptor used when there
         is no (...) on the decorator, this is only called when the decorator is on
@@ -157,43 +242,66 @@ class Decorator(object):
         and the actual wrapped thing (function/method/class) is called"""
         call_args = args
         call_kwargs = kwargs
-        ret = None
         invoke = True
+        pout.v(self, args, kwargs)
         if not self.wrapped:
+            logger.debug("Wrapping {}.__call__() argument".format(self.__class__.__name__))
             self.set_wrapped(args[0])
             args = ()
             invoke = False
 
-        try:
+        if self.wrapped_func:
+            logger.debug("Calling {}.decorate_func()".format(self.__class__.__name__))
+            ret = self.decorate_func(self.wrapped, *self.args, **self.kwargs)
 
-            if self.wrapped_func:
-                ret = self.decorate_func(self.wrapped, *self.args, **self.kwargs)
-
-            elif self.wrapped_class:
-                ret = self.decorate_class(self.wrapped, *self.args, **self.kwargs)
-
-            else:
-                raise ValueError("wrapped is not a class or a function")
-
-        except TypeError as e:
-            # recover from is_wrapped_arg misclassifying the call
-            # NOTE -- this is super hacky
-            e_msg = str(e)
-            if "arguments" in e_msg and "takes" in e_msg \
-                or ("argument" in e_msg and "missing" in e_msg):
-                self.args = self.create_args
-                self.kwargs = self.create_kwargs
-                self.wrapped = None
-                ret = self.__call__(*call_args, **call_kwargs)
-
-            else:
-                raise
+        elif self.wrapped_class:
+            logger.debug("Calling {}.decorate_class()".format(self.__class__.__name__))
+            ret = self.decorate_class(self.wrapped, *self.args, **self.kwargs)
 
         else:
-            if invoke:
-                ret = ret(*args, **kwargs)
+            raise ValueError("wrapped is not a class or a function")
+
+
+        if invoke:
+            logger.debug("Invoking {} decorated value".format(self.__class__.__name__))
+            ret = ret(*args, **kwargs)
 
         return ret
+
+
+
+
+
+#         try:
+# 
+#             if self.wrapped_func:
+#                 ret = self.decorate_func(self.wrapped, *self.args, **self.kwargs)
+# 
+#             elif self.wrapped_class:
+#                 ret = self.decorate_class(self.wrapped, *self.args, **self.kwargs)
+# 
+#             else:
+#                 raise ValueError("wrapped is not a class or a function")
+# 
+#         except TypeError as e:
+#             # recover from is_wrapped_arg misclassifying the call
+#             # NOTE -- this is super hacky
+#             e_msg = String(e)
+#             if "arguments" in e_msg and "takes" in e_msg \
+#                 or ("argument" in e_msg and "missing" in e_msg):
+#                 self.args = self.create_args
+#                 self.kwargs = self.create_kwargs
+#                 self.wrapped = None
+#                 ret = self.__call__(*call_args, **call_kwargs)
+# 
+#             else:
+#                 raise
+# 
+#         else:
+#             if invoke:
+#                 ret = ret(*args, **kwargs)
+# 
+#         return ret
 
     def decorate_func(self, func, *decorator_args, **decorator_kwargs):
         """override this in a child class with your own logic, it must return a

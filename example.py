@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals, division, print_function, absolute_import
 import inspect
+import sys
 
 import pout
 
@@ -35,14 +38,14 @@ class Dec(object):
         pout.v(k)
         return super(Dec, self).__getattribute__(k)
 
-    def __get__(self, instance, klass):
+    def __get__(self, *args, **kwargs):
         """
         having this method here turns the class into a descriptor used when there
         is no (...) on the decorator
         """
-        pout.v("__get__")
+        pout.v("__get__", args, kwargs)
         def wrapper(*args, **kwargs):
-            return "__get__"
+            pout.v("wrapper", args, kwargs)
         return wrapper
 
     def __call__(self, *args, **kwargs):
@@ -54,7 +57,7 @@ class Dec(object):
         #pout.v(frames[1:])
 
         def wrapper(*args, **kwargs):
-            return "__call__"
+            pout.v("wrapper", args, kwargs)
         return wrapper
 
 
@@ -62,7 +65,8 @@ class Dec(object):
 pout.b("@Dec")
 @Dec
 def foo(*args, **kwargs): pass
-pout.v("defined")
+
+pout.b()
 foo("func1", "func2")
 
 

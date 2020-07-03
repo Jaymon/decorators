@@ -339,3 +339,28 @@ class PropertyTest(TestCase):
         f = Foo()
         with self.assertRaises(AttributeError):
             f.che
+
+    def test_setter_kwarg(self):
+        class Foo(object):
+            @property(setter="_che")
+            def che(self, v):
+                self._che = v
+
+        f = Foo()
+        f.che = 4
+        self.assertEqual(4, f.che)
+
+        class Foo(object):
+            @property(deleter="_che")
+            def che(self):
+                del self._che
+
+        f = Foo()
+        f.che = 5
+        self.assertEqual(5, f.che)
+
+        del f.che
+
+        with self.assertRaises(AttributeError):
+            f.che
+

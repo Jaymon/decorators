@@ -7,11 +7,13 @@ from .base import FuncDecorator
 
 class classproperty(property):
     """
-    allow a class property to exist on the Orm
+    allow a readonly class property to exist on a class with a similar interface
+    to the built-in property decorator
 
-    NOTE -- this is read only, you can't write to the property
+    NOTE -- because of Python's architecture, this can only be read only, you can't
+        create a setter or deleter
 
-    example --
+    :Example:
         class Foo(object):
             @classproperty
             def bar(cls):
@@ -20,35 +22,15 @@ class classproperty(property):
 
     http://stackoverflow.com/questions/128573/using-property-on-classmethods
     http://stackoverflow.com/questions/5189699/how-can-i-make-a-class-property-in-python
+    https://stackoverflow.com/a/38810649/5006
     http://docs.python.org/2/reference/datamodel.html#object.__setattr__
+    https://stackoverflow.com/a/3203659/5006
     """
     def __init__(self, fget, doc=None):
         super(classproperty, self).__init__(fget, doc=doc)
 
     def __get__(self, instance, instance_class=None):
         return self.fget(instance_class)
-
-#     def __get__(self, instance, instance_class=None):
-#         pout.i(self.fget)
-#         if self.fget is None:
-#             raise AttributeError("unreadable attribute")
-#         return self.fget(instance_class)
-
-#     def __set__(self, instance_class, value):
-#         pout.h()
-#         if self.fset is None:
-#             raise AttributeError("can't set attribute")
-#         self.fset(instance_class, value)
-
-#     def __delete__(self, instance_class):
-#         if self.fdel is None:
-#             raise AttributeError("can't delete attribute")
-#         self.fdel(instance_class)
-
-#     def getter(self, fget):
-#         #raise TypeError("@classproperty is readonly due to python's architecture")
-#         self.fget = fget
-#         return self
 
     def setter(self, fset):
         raise TypeError("classproperty is readonly due to python's architecture")
@@ -58,16 +40,45 @@ class classproperty(property):
 
 
 class property(FuncDecorator):
+    """A replacement for the built-in @property that enables extra functionality
+
+    See http://www.reddit.com/r/Python/comments/ejp25/cached_property_decorator_that_is_memory_friendly/
+    see https://docs.python.org/2/howto/descriptor.html
+    see http://stackoverflow.com/questions/17330160/python-how-does-the-property-decorator-work
+    see https://docs.python.org/2/howto/descriptor.html
+
+    :Example:
+        # make this property memoized (cached)
+        class Foo(object):
+            @property(cached="_bar")
+            def bar(self):
+                return 42 # will be cached to self._bar
+        f = Foo()
+        f.bar # 42
+        f._bar # 42
+
+    Options you can pass into the decorator to customize the property
+
+        * allow_empty -- boolean (default True) -- False to not cache empty values (eg, None, "")
+        * cached -- string, pass in the variable name (eg, "_foo") that the value
+            returned from the getter will be cached to
+        * setter -- string, set this to variable name (similar to cached) if you want the decorated
+            method to act as the setter instead of the getter, this will cause a default
+            getter to be created that just returns variable name
+        * deleter -- string, same as setter, but the descorated method will be the deleter and default
+            setters and getters will be created
+    """
     def decorate(self, method, *args, **kwargs):
-        return self.getter(method)
+        if "setter" in kwargs:
+            ret = self.setter(method)
 
-#         def wrapper(*args, **kwargs):
-#             pout.v(args, kwargs)
-#             return func(*args, **kwargs)
-#         return wrapper
+        elif "deleter" in kwargs:
+            ret = self.deleter(method)
 
+        else:
+            ret = self.getter(method)
 
-        return func
+        return ret
 
     def __init__(self, fget=None, fset=None, fdel=None, doc=None, **kwargs):
         self.getter(fget)
@@ -77,7 +88,12 @@ class property(FuncDecorator):
         if doc:
             self.__doc__ = doc
 
-        self.name = kwargs.pop("cached", kwargs.pop("cache", ""))
+        self.name = ""
+        for k in ["cached", "cache", "setter", "deleter"]:
+            if k in kwargs:
+                self.name = kwargs[k]
+                break
+
         self.cached = True if self.name else False
         if "allow_empty" in kwargs:
             if self.cached:
@@ -114,7 +130,6 @@ class property(FuncDecorator):
                 value = instance.__dict__[self.name]
                 if not value and not self.allow_empty:
                     value = self.get_value(instance)
-                    value = self.fget(instance)
                     if value or self.allow_empty:
                         self.__set__(instance, value)
 
@@ -127,18 +142,11 @@ class property(FuncDecorator):
             value = self.get_value(instance)
 
         return value
-        #return self.fget(instance)
 
     def __set__(self, instance, value):
         if self.cached:
             if self.fset:
                 self.fset(instance, value)
-#                 v = self.fset(instance, value)
-#                 if v is not None or v != value:
-#                     instance.__dict__[self.name] = v
-# 
-#                 else:
-#                     instance.__dict__[self.name] = value
 
             else:
                 instance.__dict__[self.name] = value
@@ -152,7 +160,6 @@ class property(FuncDecorator):
     def __delete__(self, instance):
         if self.cached:
             if self.fdel:
-                #instance.__dict__.pop(self.name, None)
                 self.fdel(instance)
 
             else:
@@ -167,38 +174,18 @@ class property(FuncDecorator):
                 self.fdel(instance)
             else:
                 raise AttributeError("Can't delete attribute")
-#         try:
-#             del self.value
-#         except AttributeError:
-#             pass
 
     def getter(self, fget):
         self.fget = fget
         return self
-        #return type(self)(fget, self.fset, self.fdel, self.__doc__)
 
     def setter(self, fset):
         self.fset = fset
         return self
-        #return type(self)(self.fget, fset, self.fdel, self.__doc__)
 
     def deleter(self, fdel):
         self.fdel = fdel
         return self
-        #return type(self)(self.fget, self.fset, fdel, self.__doc__)
-
-#     def default_fget(self, instance):
-#         return self.value
-# 
-#     def default_fset(self, instance, value):
-#         pout.v("fset", value)
-#         self.value = value
-# 
-#     def default_fdel(self, instance):
-#         del self.value
-
-
-
 
 
 class xproperty(object):

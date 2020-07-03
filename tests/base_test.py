@@ -1,7 +1,14 @@
-from unittest import TestCase
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals, division, print_function, absolute_import
 
-import decorators
-from decorators import FuncDecorator, ClassDecorator, InstanceDecorator
+from decorators import (
+    FuncDecorator,
+    ClassDecorator,
+    InstanceDecorator,
+    Decorator,
+)
+
+from . import TestCase, testdata
 
 
 class InstanceDecoratorTest(TestCase):
@@ -49,7 +56,7 @@ class InstanceDecoratorTest(TestCase):
 class ClassDecoratorTest(TestCase):
 
     def test_on_class(self):
-        class dec(decorators.ClassDecorator):
+        class dec(ClassDecorator):
             def decorate(self, klass, *dec_a, **dec_kw):
                 if dec_a:
                     klass.val = dec_a[0]
@@ -102,6 +109,7 @@ class ClassDecoratorTest(TestCase):
         class Bar(object): pass
 
         b = Bar() # this shouldn't error, if it does we failed
+
 
 class FuncDecoratorTest(TestCase):
     def test_default_value(self):
@@ -170,7 +178,7 @@ class FuncDecoratorTest(TestCase):
         self.assertEqual(1, b.che1())
 
     def test_inspect(self):
-        class dec1(decorators.FuncDecorator):
+        class dec1(FuncDecorator):
             def decorate(self, func, *dec_a, **dec_kw):
                 def wrapper(*args, **kwargs):
                     pout.h()
@@ -193,7 +201,7 @@ class FuncDecoratorTest(TestCase):
 
     def test_multi(self):
 
-        class dec1(decorators.FuncDecorator):
+        class dec1(FuncDecorator):
             def decorate(self, func, *dec_a, **dec_kw):
                 def wrapper(*args, **kwargs):
                     ret = func(*args, **kwargs)
@@ -201,13 +209,21 @@ class FuncDecoratorTest(TestCase):
                     return ret
                 return wrapper
 
-        class dec2(decorators.FuncDecorator):
+        class dec2(FuncDecorator):
             def decorate(self, func, *dec_a, **dec_kw):
                 def wrapper(*args, **kwargs):
                     ret = func(*args, **kwargs)
                     ret += 1
                     return ret
                 return wrapper
+
+        @dec2
+        @dec1(1, 2)
+        def foo(*args, **kwargs):
+            return 2
+        r = foo()
+        self.assertEqual(4, r)
+        return
 
         @dec2
         @dec1
@@ -216,13 +232,6 @@ class FuncDecoratorTest(TestCase):
         # bar = dec2(dec1(bar))
         r = bar()
         self.assertEqual(3, r)
-
-        @dec2
-        @dec1(1, 2)
-        def foo(*args, **kwargs):
-            return 2
-        r = foo()
-        self.assertEqual(4, r)
 
         @dec2(1, 2)
         @dec1
@@ -239,7 +248,7 @@ class FuncDecoratorTest(TestCase):
         self.assertEqual(6, r)
 
     def test_well_behaved(self):
-        class dec(decorators.FuncDecorator):
+        class dec(FuncDecorator):
             def decorate(self, func, *dec_a, **dec_kw):
                 def wrapper(*args, **kwargs):
                     return func(*args, **kwargs)
@@ -260,7 +269,7 @@ class FuncDecoratorTest(TestCase):
         self.assertEqual('bar docs', bar.__doc__)
 
     def test_no_params_on_function(self):
-        class dec(decorators.FuncDecorator):
+        class dec(FuncDecorator):
             def decorate(self, func):
                 def wrapper(*args, **kwargs):
                     return func(*args, **kwargs)
@@ -274,7 +283,7 @@ class FuncDecoratorTest(TestCase):
         self.assertEqual(1, r)
 
     def test_params_init_on_function(self):
-        class dec(decorators.FuncDecorator):
+        class dec(FuncDecorator):
             def decorate(self, func, *dec_args, **dec_kw):
                 def wrapper(*args, **kwargs):
                     return func(*args, **kwargs)
@@ -295,7 +304,7 @@ class FuncDecoratorTest(TestCase):
         self.assertEqual(2, r)
 
     def test_no_params_on_classmethod(self):
-        class dec(decorators.FuncDecorator):
+        class dec(FuncDecorator):
             def decorate(self, func, *dec_a, **dec_kw):
                 def wrapper(cls, *args, **kwargs):
                     return func(cls, *args, **kwargs)
@@ -312,7 +321,7 @@ class FuncDecoratorTest(TestCase):
         self.assertEqual(1, r)
 
     def test_params_on_classmethod(self):
-        class dec(decorators.FuncDecorator):
+        class dec(FuncDecorator):
             def decorate(self, func, *decorator_args, **dec_kw):
                 def wrapper(cls, test_instance, *args, **kwargs):
                     test_instance.assertEqual((1, 2), decorator_args)
@@ -330,7 +339,7 @@ class FuncDecoratorTest(TestCase):
         self.assertEqual(1, r)
 
     def test_init_on_classmethod(self):
-        class dec(decorators.FuncDecorator):
+        class dec(FuncDecorator):
             def decorate(self, func):
                 def wrapper(cls, *args, **kwargs):
                     return func(cls, *args, **kwargs)
@@ -347,7 +356,7 @@ class FuncDecoratorTest(TestCase):
         self.assertEqual(1, r)
 
     def test_no_params_on_method(self):
-        class dec(decorators.FuncDecorator):
+        class dec(FuncDecorator):
             def decorate(self, func):
                 def wrapper(self, *args, **kwargs):
                     return func(self, *args, **kwargs)
@@ -364,7 +373,7 @@ class FuncDecoratorTest(TestCase):
         self.assertEqual(1, r)
 
     def test_params_on_method(self):
-        class dec(decorators.FuncDecorator):
+        class dec(FuncDecorator):
             def decorate(self, func, *decorator_args, **dec_kw):
                 def wrapper(self, test_instance, *args, **kwargs):
                     test_instance.assertEqual((1, 2), decorator_args)
@@ -383,7 +392,7 @@ class FuncDecoratorTest(TestCase):
         self.assertEqual(1, r)
 
     def test_init_on_method(self):
-        class dec(decorators.FuncDecorator):
+        class dec(FuncDecorator):
             def decorate(self, func):
                 def wrapper(self, *args, **kwargs):
                     return func(self, *args, **kwargs)
@@ -400,4 +409,137 @@ class FuncDecoratorTest(TestCase):
         r = f.bar(self)
         self.assertEqual(1, r)
 
+    def test_ambiguity(self):
+        class dec(FuncDecorator):
+            required_args = True
+            def decorate(self, func, callback=None):
+                def wrapper(self, *args, **kwargs):
+                    return func(self, *args, **kwargs)
+                return wrapper
+
+
+        @dec(lambda *_, **__: 1)
+        def func(callback): return callback()
+
+        r = func(lambda: 2)
+        self.assertEqual(2, r)
+
+        @dec()
+        def func(callback): return callback()
+        r = func(lambda: 3)
+        self.assertEqual(3, r)
+
+
+    def test_ambiguity_2(self):
+        from decorators.base import Dec
+        import inspect
+
+#         class dec(Dec):
+#             def decorate_func(self, f, *args, **kwargs):
+#                 return f
+# 
+#             def decorate_class(self, c, *args, **kwargs):
+#                 pout.v(c, args, kwargs)
+#                 return c
+
+
+
+        class dec(Decorator):
+#             def __init__(self, *args, **kwargs):
+#                 frames = inspect.stack()
+#                 #args, _, _, value_dict = inspect.getargvalues(frames[0][0])
+#                 #pout.v(args, value_dict)
+#                 pout.v(frames[1])
+#                 #pout.i(frames[1][0].f_code)
+
+            def decorate_func(self, f, *args, **kwargs):
+                return f
+
+            def decorate_class(self, c, *args, **kwargs):
+                #pout.v(c, args, kwargs)
+                return c
+
+
+#         class dec(Basedec):
+#             def __init__(self, *args, **kwargs):
+#                 super(dec, self).__init__(*args, **kwargs)
+
+
+
+#         @dec
+#         class Foo(object):
+#             pass
+#         f = Foo()
+#         return
+
+
+
+
+
+        pout.b("special cases")
+
+        @dec(
+        )
+        def func(): pass
+        func()
+
+        @dec(
+            "arg1",
+            "arg2",
+        )
+        def func(): pass
+        func()
+
+        pout.b("functions")
+
+        @dec
+        def func(): pass
+        func()
+
+        @dec()
+        def func(): pass
+        func()
+
+        @dec("arg1")
+        def func(): pass
+        func()
+
+
+        pout.b("methods")
+
+        class Foo(object):
+            @dec
+            def func(self): pass
+        f = Foo()
+        f.func()
+
+        class Foo(object):
+            @dec()
+            def func(self): pass
+        f = Foo()
+        f.func()
+
+        class Foo(object):
+            @dec("arg1")
+            def func(self): pass
+        f = Foo()
+        f.func()
+
+        pout.b("classes")
+
+        @dec
+        class Foo(object):
+            pass
+        f = Foo()
+
+
+        @dec()
+        class Foo(object):
+            pass
+        f = Foo()
+
+        @dec("arg1")
+        class Foo(object):
+            pass
+        f = Foo()
 
