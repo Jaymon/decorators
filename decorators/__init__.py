@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, division, print_function, absolute_import
+import logging
 
 from .base import (
     Decorator,
@@ -13,6 +14,9 @@ from .descriptor import (
 )
 
 
-__version__ = "0.1.1"
+__version__ = "2.0.0"
 
+
+# get rid of "No handler found" warnings (cribbed from requests)
+logging.getLogger(__name__).addHandler(logging.NullHandler())
 

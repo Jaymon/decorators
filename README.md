@@ -36,16 +36,16 @@ import decorators
 class mydecorator(decorators.Decorator):
     def decorate_func(self, func, *dec_args, **dec_kwargs):
         def decorator(*args, *kwargs):
-            print "You passed into the decorator these arguments", dec_args, dec_kwargs
-            print "You passed into your function these arguments", args, kwargs
-            print "Your function is", func
+            print("You passed into the decorator these arguments", dec_args, dec_kwargs)
+            print("You passed into your function these arguments", args, kwargs)
+            print("Your function is", func)
             return func(*args, **kwargs)
 
         return decorator
 
     def decorate_class(self, klass, *dec_args, **dec_kwargs):
-        print "You passed into the decorator these arguments", dec_args, dec_kwargs
-        print "Your class is", klass
+        print("You passed into the decorator these arguments", dec_args, dec_kwargs)
+        print("Your class is", klass)
         return klass
 ```
 
@@ -70,6 +70,8 @@ Now, your decorator can decorate functions or classes, pass in arguments, or not
 
 ## Other decorators
 
+### FuncDecorator, ClassDecorator, and InstanceDecorator
+
 The `Decorator` class is good if you want to create a decorator that is totally flexible, if you want to enforce your decorator only being used for a function/method, you can use `FuncDecorator`. If you want to only decorate a class, use `ClassDecorator`, and if you want to decorate every instance of a class, use `InstanceDecorator`.
 
 Whatever child class you use, you override the `decorate` method to return your decorator function:
@@ -93,6 +95,43 @@ class Foo(object): pass
 ```
 
 
+### Property Decorator
+
+The `property` decorator is a drop-in replacement for Python's built-in `property` decorator, with additional functionality:
+
+```python
+from decorators import property
+
+class Foo(object):
+    @property
+    def bar(self):
+        """This will act just like python's built-in @property decorator"""
+        return 1
+        
+    @property(cached="_che")
+    def che(self):
+        """This will cache the return value into _che and add a setter/deleter"""
+        return 1
+```
+
+
+### Classproperty Decorator
+
+Allows you to create a property on the class:
+
+```python
+from decorators import classproperty
+
+class Foo(object):
+    @classproperty
+    def bar(cls):
+        """Available as Foo.bar"""
+        return 1
+        
+print(Foo.bar) # 1
+```
+
+
 ## Installation
 
 Use pip:
@@ -101,5 +140,5 @@ Use pip:
 
 Or, to get the latest and greatest from source:
 
-    pip install git+https://github.com/firstopinion/decorators#egg=decorators
+    pip install -U "git+https://github.com/firstopinion/decorators#egg=decorators"
 

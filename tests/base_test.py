@@ -87,7 +87,6 @@ class ClassDecoratorTest(TestCase):
 
     def test_callback_param_explicit(self):
         class cbp(ClassDecorator):
-            required_args = True
             def decorate(self, klass, oklass):
                 return klass
 
@@ -218,20 +217,18 @@ class FuncDecoratorTest(TestCase):
                 return wrapper
 
         @dec2
+        @dec1
+        def bar(*args, **kwargs):
+            return 1
+        r = bar()
+        self.assertEqual(3, r)
+
+        @dec2
         @dec1(1, 2)
         def foo(*args, **kwargs):
             return 2
         r = foo()
         self.assertEqual(4, r)
-        return
-
-        @dec2
-        @dec1
-        def bar(*args, **kwargs):
-            return 1
-        # bar = dec2(dec1(bar))
-        r = bar()
-        self.assertEqual(3, r)
 
         @dec2(1, 2)
         @dec1
@@ -265,8 +262,8 @@ class FuncDecoratorTest(TestCase):
         def foo(*args, **kwargs):
             """foo docs"""
             return 1
-        self.assertEqual('bar', bar.__name__)
-        self.assertEqual('bar docs', bar.__doc__)
+        self.assertEqual('foo', foo.__name__)
+        self.assertEqual('foo docs', foo.__doc__)
 
     def test_no_params_on_function(self):
         class dec(FuncDecorator):
@@ -409,9 +406,24 @@ class FuncDecoratorTest(TestCase):
         r = f.bar(self)
         self.assertEqual(1, r)
 
-    def test_ambiguity(self):
+    def test_func_with_class(self):
         class dec(FuncDecorator):
-            required_args = True
+            def decorate(self, func, *dec_args, **dec_kwargs):
+                def wrapper(*args, **kwargs):
+                    return func(*args, **kwargs) + 1
+                return wrapper
+
+        class Foo(object): pass
+
+        @dec(Foo)
+        def func(): return 3
+
+        r = func()
+        self.assertEqual(4, r)
+
+
+    def test_ambiguity_1(self):
+        class dec(FuncDecorator):
             def decorate(self, func, callback=None):
                 def wrapper(self, *args, **kwargs):
                     return func(self, *args, **kwargs)
@@ -420,7 +432,6 @@ class FuncDecoratorTest(TestCase):
 
         @dec(lambda *_, **__: 1)
         def func(callback): return callback()
-
         r = func(lambda: 2)
         self.assertEqual(2, r)
 
@@ -431,7 +442,7 @@ class FuncDecoratorTest(TestCase):
 
 
     def test_ambiguity_2(self):
-        from decorators.base import Dec
+        self.skip_test("This was used to rewrite because it has every type of decorator")
         import inspect
 
 #         class dec(Dec):
