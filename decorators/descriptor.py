@@ -47,6 +47,9 @@ class property(FuncDecorator):
     see http://stackoverflow.com/questions/17330160/python-how-does-the-property-decorator-work
     see https://docs.python.org/2/howto/descriptor.html
 
+    as of 3.8, functools as a cached_property decorator:
+        https://docs.python.org/3/library/functools.html#functools.cached_property
+
     :Example:
         # make this property memoized (cached)
         class Foo(object):
