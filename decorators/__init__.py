@@ -12,9 +12,12 @@ from .descriptor import (
     property,
     classproperty,
 )
+from .misc import (
+    once,
+)
 
 
-__version__ = "2.0.0"
+__version__ = "2.0.1"
 
 
 # get rid of "No handler found" warnings (cribbed from requests)

@@ -11,6 +11,54 @@ from decorators import (
 from . import TestCase, testdata
 
 
+class DecoratorTest(TestCase):
+    def test_classmethod_decorate_func(self):
+        class dm(Decorator):
+            def decorate_func(self, func, *dc_args, **dc_kwargs):
+                return func
+
+        class Foo(object):
+            @classmethod
+            @dm
+            def bar(cls):
+                return 5
+
+        r1 = Foo.bar()
+        r2 = Foo.bar()
+        self.assertEqual(r1, r2)
+
+    def test_classmethod_all(self):
+        self.skip_test("""as far as I can tell there is not a good way to infer this
+            particular test because it seems to me decorating a class with a function
+            might not be that uncommon and @dm(function) on the class is equivalent
+            to @dm on the function, and they will both pass the ambiguity check"""
+        )
+        class dm(Decorator):
+            def decorate_func(self, func, *dc_args, **dc_kwargs):
+                print("func")
+                return func
+
+            def decorate_class(self, cls, *dc_args, **dc_kwargs):
+                print("cls")
+                return cls
+
+        class Foo(object):
+            @classmethod
+            @dm
+            def bar(cls):
+                return 5
+
+        # here is the problem, these calls will actually wrap the class, not the
+        # method, as far as I can tell there is no way to discern the difference
+        # and I think this is rare enough to not be worth trying to figure out
+        # anymore
+        r1 = Foo.bar()
+        r2 = Foo.bar()
+        self.assertEqual(r1, r2)
+        self.assertEqual(5, r1)
+        self.assertEqual(5, r2)
+
+
 class InstanceDecoratorTest(TestCase):
     def test_on_instance(self):
         class dec(InstanceDecorator):
@@ -111,6 +159,69 @@ class ClassDecoratorTest(TestCase):
 
 
 class FuncDecoratorTest(TestCase):
+    def test_classmethod(self):
+        class dm(FuncDecorator):
+            def decorate(self, func, *dc_args, **dc_kwargs):
+                def decorated(*args, **kwargs):
+                    return func(*args, **kwargs)
+                return decorated
+
+        class Foo(object):
+            @classmethod
+            @dm
+            def bar(cls):
+                return 5
+
+        r1 = Foo.bar()
+        r2 = Foo.bar()
+        self.assertEqual(r1, r2)
+
+    def test_consistency(self):
+        """I never tested the new code with multiple calls, turns out they didn't
+        work because after it figured out the correct path it sometimes didn't invoke
+        the function like it should on the subsequent calls"""
+        class dc(FuncDecorator):
+            def decorate(self, func, *dc_args, **dc_kwargs):
+                def decorated(*args, **kwargs):
+                    return func(*args, **kwargs)
+                return decorated
+
+        @dc
+        def foo(v1, v2):
+            return v1 + v2
+        r1 = foo(1, 2)
+        r2 = foo(1, 2)
+        r3 = foo(1, 2)
+        self.assertEqual(r1, r2)
+        self.assertEqual(r1, r3)
+
+        @dc()
+        def bar(v1, v2):
+            return v1 + v2
+        r1 = bar(1, 2)
+        r2 = bar(1, 2)
+        r3 = bar(1, 2)
+        self.assertEqual(r1, r2)
+        self.assertEqual(r1, r3)
+
+        @dc("one")
+        def che(v1, v2):
+            return v1 + v2
+        r1 = che(1, 2)
+        r2 = che(1, 2)
+        r3 = che(1, 2)
+        self.assertEqual(r1, r2)
+        self.assertEqual(r1, r3)
+
+        @dc("one", "two")
+        def baz(v1, v2):
+            return v1 + v2
+        r1 = baz(1, 2)
+        r2 = baz(1, 2)
+        r3 = baz(1, 2)
+        self.assertEqual(r1, r2)
+        self.assertEqual(r1, r3)
+
     def test_default_value(self):
         class dv(FuncDecorator):
             def decorate(self, func, bar=2):

@@ -71,26 +71,6 @@ class property(FuncDecorator):
         * deleter -- string, same as setter, but the descorated method will be the deleter and default
             setters and getters will be created
     """
-    def log(self, format_str, *format_args, **log_options):
-        if self.fget:
-            log_options.setdefault(
-                "prefix",
-                "[{}.{}]".format(self.__class__.__name__, self.fget.__name__)
-            )
-        return super(property, self).log(format_str, *format_args, **log_options)
-
-    def decorate(self, method, *args, **kwargs):
-        if "setter" in kwargs:
-            ret = self.setter(method)
-
-        elif "deleter" in kwargs:
-            ret = self.deleter(method)
-
-        else:
-            ret = self.getter(method)
-
-        return ret
-
     def __init__(self, fget=None, fset=None, fdel=None, doc=None, **kwargs):
         self.getter(fget)
         self.setter(fset)
@@ -111,6 +91,27 @@ class property(FuncDecorator):
                 self.allow_empty = kwargs.pop('allow_empty', True)
             else:
                 raise ValueError("Cannot set allow_empty with cached")
+
+    def log(self, format_str, *format_args, **log_options):
+        fget = getattr(self, "fget", None)
+        if fget:
+            log_options.setdefault(
+                "prefix",
+                "[{}.{}]".format(self.__class__.__name__, fget.__name__)
+            )
+        return super(property, self).log(format_str, *format_args, **log_options)
+
+    def decorate(self, method, *args, **kwargs):
+        if "setter" in kwargs:
+            ret = self.setter(method)
+
+        elif "deleter" in kwargs:
+            ret = self.deleter(method)
+
+        else:
+            ret = self.getter(method)
+
+        return ret
 
     def get_value(self, instance):
         if self.fget:
