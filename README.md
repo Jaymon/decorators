@@ -140,5 +140,5 @@ Use pip:
 
 Or, to get the latest and greatest from source:
 
-    pip install -U "git+https://github.com/firstopinion/decorators#egg=decorators"
+    pip install -U "git+https://github.com/Jaymon/decorators#egg=decorators"
 
