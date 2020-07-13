@@ -93,11 +93,7 @@ class property(FuncDecorator):
             self.readonly = True
 
         self.cached = True if self.name else False
-        if "allow_empty" in kwargs:
-            if self.cached:
-                self.allow_empty = kwargs.pop('allow_empty', True)
-            else:
-                raise ValueError("Cannot set allow_empty with cached")
+        self.allow_empty = kwargs.pop('allow_empty', True)
 
     def log(self, format_str, *format_args, **log_options):
         fget = getattr(self, "fget", None)

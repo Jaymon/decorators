@@ -391,3 +391,15 @@ class PropertyTest(TestCase):
         with self.assertRaises(AttributeError):
             del f.che
 
+    def test_empty(self):
+        class Foo(object):
+            @property(readonly="_che")
+            def che(self):
+                print("che getter")
+                return []
+
+        f = Foo()
+        self.assertEqual([], f.che)
+        self.assertEqual([], f.che)
+        self.assertEqual([], f.che)
+
