@@ -45,34 +45,33 @@ class Decorator(object):
         instance.args = args
         instance.kwargs = kwargs
 
-        if kwargs:
-            instance.log("__new__ has kwargs, so __call__ is the wrap call")
-            instance.wrapped_call = "__call__"
+        if instance.is_possible_wrap_call(*args, **kwargs):
+            functools.update_wrapper(instance, args[0], updated=())
+            if instance.is_class(args[0]):
+                instance.log("__new__ returning wrapped class")
+                try:
+                    instance.wrapped_call = "__new__"
+                    # here we do some magic stuff to return the class back in case this is a
+                    # class decorator, we do this so we don't wrap the class, thus causing
+                    # things like isinstance() checks to fail or the class
+                    # variables being hidden
+                    instance = instance.decorate_class(args[0])
+
+                except NotImplementedError:
+                    instance.log("Classes are not supported with this decorator")
+                    instance.wrapped_call = "__call__"
+
+                except TypeError:
+                    # there are a few reasons this might fail, for example, the
+                    # decorator could expect some arguments, but if it does fail
+                    # we'll just assume we should treat the passed in values as
+                    # the decorators arguments
+                    instance.log("__new__ failed ambiguous class wrap")
+                    instance.wrapped_call = "__call__"
 
         else:
-            if instance.is_possible_wrap_call(*args, **kwargs):
-                functools.update_wrapper(instance, args[0], updated=())
-                if instance.is_class(args[0]):
-                    instance.log("__new__ returning wrapped class")
-                    try:
-                        instance.wrapped_call = "__new__"
-                        # here we do some magic stuff to return the class back in case this is a
-                        # class decorator, we do this so we don't wrap the class, thus causing
-                        # things like isinstance() checks to fail or the class
-                        # variables being hidden
-                        instance = instance.decorate_class(args[0])
-
-                    except NotImplementedError:
-                        instance.log("Classes are not supported with this decorator")
-                        instance.wrapped_call = "__call__"
-
-                    except TypeError:
-                        # there are a few reasons this might fail, for example, the
-                        # decorator could expect some arguments, but if it does fail
-                        # we'll just assume we should treat the passed in values as
-                        # the decorators arguments
-                        instance.log("__new__ failed ambiguous class wrap")
-                        instance.wrapped_call = "__call__"
+            instance.log("__new__ arguments are not wrappable, so __call__ is the wrap call")
+            instance.wrapped_call = "__call__"
 
         return instance
 
@@ -99,7 +98,7 @@ class Decorator(object):
         (ie, just a normal function), it also won't fire when the decorated method
         is a classmethod
         """
-        self.log("__new__ is the wrap call because __get__ called")
+        self.log("__new__ was the wrap call because __get__ called")
 
         # we now know the __new__ call was a wrap_call and there are no
         # decorator arguments
@@ -133,46 +132,39 @@ class Decorator(object):
             invoke = True
 
         else:
-            if kwargs:
-                instance.log("__call__ has kwargs, so __new__ was the wrap call")
+            if self.is_possible_wrap_call(*args, **kwargs):
+                self.log("__call__ could be a wrap call")
+
+                decorator_args = self.args
+                decorator_kwargs = self.kwargs
+                self.wrapped_call = "__call__"
+
+                if self.is_possible_wrap_call(*self.args, **self.kwargs):
+                    self.log("__new__ could be a wrap call also")
+                    #pout.v(args, kwargs, self.args, self.kwargs)
+
+                    # this is the tough one, we have some possibilities:
+                    # 1. the __new__ call contained a callback or class passed to the decorator 
+                    # 2. the decorator had nothing (eg, @dec) and the wrapped arg
+                    # takes only a function or callback as its one argument
+                    #
+                    # I'm going to assume that the function/class was passed into the
+                    # decorator so the __new__ call contained decorator arguments
+                    wrapped = args[0]
+                    ambiguous = True
+
+                    self.log("choosing __call__ as wrapped call over __new__")
+
+                else:
+                    self.log("choosing __call__ as wrapped call")
+                    wrapped = args[0]
+
+            else:
+                #pout.v(args, kwargs, self.args, self.kwargs)
+                self.log("__call__ arguments are not wrappable, so __new__ is the wrap call")
                 wrapped = self.args[0]
                 invoke = True
                 self.wrapped_call = "__new__"
-
-            else:
-                if self.is_possible_wrap_call(*args, **kwargs):
-                    self.log("__call__ could be a wrap call")
-
-                    decorator_args = self.args
-                    decorator_kwargs = self.kwargs
-                    self.wrapped_call = "__call__"
-
-                    if self.is_possible_wrap_call(*self.args, **self.kwargs):
-                        self.log("__new__ could be a wrap call also")
-                        #pout.v(args, kwargs, self.args, self.kwargs)
-
-                        # this is the tough one, we have some possibilities:
-                        # 1. the __new__ call contained a callback or class passed to the decorator 
-                        # 2. the decorator had nothing (eg, @dec) and the wrapped arg
-                        # takes only a function or callback as its one argument
-                        #
-                        # I'm going to assume that the function/class was passed into the
-                        # decorator so the __new__ call contained decorator arguments
-                        wrapped = args[0]
-                        ambiguous = True
-
-                        self.log("choosing __call__ as wrapped call over __new__")
-
-                    else:
-                        self.log("choosing __call__ as wrapped call")
-                        wrapped = args[0]
-
-                else:
-                    #pout.v(args, kwargs, self.args, self.kwargs)
-                    self.log("__new__ is the wrap call")
-                    wrapped = self.args[0]
-                    invoke = True
-                    self.wrapped_call = "__new__"
 
         try:
             ret = self.wrap(wrapped, *decorator_args, **decorator_kwargs)

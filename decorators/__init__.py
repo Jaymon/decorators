@@ -18,7 +18,7 @@ from .misc import (
 )
 
 
-__version__ = "2.0.2"
+__version__ = "2.0.3"
 
 
 # get rid of "No handler found" warnings (cribbed from requests)
