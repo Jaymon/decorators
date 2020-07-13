@@ -14,10 +14,11 @@ from .descriptor import (
 )
 from .misc import (
     once,
+    deprecated,
 )
 
 
-__version__ = "2.0.1"
+__version__ = "2.0.2"
 
 
 # get rid of "No handler found" warnings (cribbed from requests)

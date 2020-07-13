@@ -3,7 +3,10 @@ from __future__ import unicode_literals, division, print_function, absolute_impo
 from collections import Counter
 
 from decorators.compat import *
-from decorators.misc import once
+from decorators.misc import (
+    once,
+    deprecated,
+)
 
 from . import TestCase, testdata
 
@@ -117,4 +120,80 @@ class OnceTest(TestCase):
         with testdata.capture(loggers=False) as c:
             InBoo.bar_method()
         self.assertFalse("bar" in c)
+
+
+class DeprecatedTest(TestCase):
+    def test_deprecated_func(self):
+        @deprecated
+        def foo(*args, **kwargs):
+            return 1
+
+        @deprecated()
+        def bar(*args, **kwargs):
+            return 2
+
+        @deprecated("2020-07-12")
+        def che(*args, **kwargs):
+            return 3
+
+        r1 = foo()
+        r2 = foo()
+        self.assertEqual(r1, r2)
+
+        r1 = bar()
+        r2 = bar()
+        self.assertEqual(r1, r2)
+
+        r1 = che()
+        r2 = che()
+        self.assertEqual(r1, r2)
+
+    def test_deprecated_method(self):
+        class DC(object):
+            @deprecated
+            def foo(*args, **kwargs):
+                return 1
+
+            @deprecated()
+            def bar(*args, **kwargs):
+                return 2
+
+            @deprecated("2020-07-12")
+            def che(*args, **kwargs):
+                return 3
+
+        o = DC()
+        r1 = o.foo()
+        r2 = o.foo()
+        self.assertEqual(r1, r2)
+
+        r1 = o.bar()
+        r2 = o.bar()
+        self.assertEqual(r1, r2)
+
+        r1 = o.che()
+        r2 = o.che()
+        self.assertEqual(r1, r2)
+
+    def test_deprecated_class(self):
+        @deprecated
+        class Foo(object): pass
+
+        @deprecated()
+        class Bar(object): pass
+
+        @deprecated("2020-07-12")
+        class Che(object): pass
+
+        r1 = Foo()
+        r2 = Foo()
+        self.assertEqual(type(r1), type(r2))
+
+        r1 = Bar()
+        r2 = Bar()
+        self.assertEqual(type(r1), type(r2))
+
+        r1 = Che()
+        r2 = Che()
+        self.assertEqual(type(r1), type(r2))
 
