@@ -70,6 +70,8 @@ class property(FuncDecorator):
             getter to be created that just returns variable name
         * deleter -- string, same as setter, but the descorated method will be the deleter and default
             setters and getters will be created
+        * readonly -- string, the decorated method will be the getter and set the value 
+            into the name defined in readonly, and no setter or deleter will be allowed
     """
     def __init__(self, fget=None, fset=None, fdel=None, doc=None, **kwargs):
         self.getter(fget)
@@ -84,6 +86,11 @@ class property(FuncDecorator):
             if k in kwargs:
                 self.name = kwargs[k]
                 break
+
+        self.readonly = False
+        if "readonly" in kwargs:
+            self.name = kwargs["readonly"]
+            self.readonly = True
 
         self.cached = True if self.name else False
         if "allow_empty" in kwargs:
@@ -137,6 +144,12 @@ class property(FuncDecorator):
         if instance is None:
             return self
 
+        # we temporarily set readonly to False to make it possible to set the
+        # value when fetched from the getter, then we set the value back to the
+        # original value
+        readonly = self.readonly
+        self.readonly = False
+
         if self.cached:
             if self.name in instance.__dict__:
                 self.log("Checking cache for {}", self.name)
@@ -156,9 +169,14 @@ class property(FuncDecorator):
         else:
             value = self.get_value(instance)
 
+        self.readonly = readonly
+
         return value
 
     def __set__(self, instance, value):
+        if self.readonly:
+            raise AttributeError("Can't set readonly attribute")
+
         if self.cached:
             self.log("Caching value in {}", self.name)
             if self.fset:
@@ -174,6 +192,9 @@ class property(FuncDecorator):
             self.fset(instance, value)
 
     def __delete__(self, instance):
+        if self.readonly:
+            raise AttributeError("Can't delete readonly attribute")
+
         if self.cached:
             self.log("Deleting cached value in {}", self.name)
             if self.fdel:

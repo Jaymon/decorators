@@ -364,3 +364,28 @@ class PropertyTest(TestCase):
         with self.assertRaises(AttributeError):
             f.che
 
+    def test_readonly(self):
+        class Foo(object):
+            @property(readonly="_che")
+            def che(self):
+                print("che getter")
+                return 5
+
+        f = Foo()
+
+        with testdata.capture() as o:
+            r = f.che
+        self.assertEqual(5, r)
+        self.assertTrue("che getter" in o)
+
+        with testdata.capture() as o:
+            r = f.che
+        self.assertEqual(5, r)
+        self.assertFalse("che getter" in o)
+
+        with self.assertRaises(AttributeError):
+            f.che = 4
+
+        with self.assertRaises(AttributeError):
+            del f.che
+
