@@ -477,8 +477,11 @@ class FuncDecoratorTest(TestCase):
                 return 1
 
         f = Foo()
-        r = f.bar(self)
-        self.assertEqual(1, r)
+        r1 = f.bar(self)
+        self.assertEqual(1, r1)
+        r2 = f.bar(self)
+        self.assertEqual(1, r2)
+        self.assertEqual(r1, r2)
 
     def test_params_on_method(self):
         class dec(FuncDecorator):

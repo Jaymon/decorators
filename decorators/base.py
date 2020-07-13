@@ -42,8 +42,8 @@ class Decorator(object):
     def __new__(cls, *args, **kwargs):
         instance = super(Decorator, cls).__new__(cls)
 
-        instance.args = args
-        instance.kwargs = kwargs
+        instance.decorator_args = args
+        instance.decorator_kwargs = kwargs
 
         if instance.is_possible_wrap_call(*args, **kwargs):
             functools.update_wrapper(instance, args[0], updated=())
@@ -102,7 +102,7 @@ class Decorator(object):
 
         # we now know the __new__ call was a wrap_call and there are no
         # decorator arguments
-        wrapped = self.args[0]
+        wrapped = self.decorator_args[0]
         self.wrapped_call = "__new__"
 
         def wrapper(*args, **kwargs):
@@ -120,28 +120,27 @@ class Decorator(object):
 
         if self.wrapped_call == "__call__":
             self.log("__call__ is the wrap call")
-            decorator_args = self.args
-            decorator_kwargs = self.kwargs
+            decorator_args = self.decorator_args
+            decorator_kwargs = self.decorator_kwargs
             wrapped = args[0]
 
         elif self.wrapped_call == "__new__":
             self.log("__new__ is the wrap call")
             decorator_args = args
             decorator_kwargs = kwargs
-            wrapped = self.args[0]
+            wrapped = self.decorator_args[0]
             invoke = True
 
         else:
             if self.is_possible_wrap_call(*args, **kwargs):
                 self.log("__call__ could be a wrap call")
 
-                decorator_args = self.args
-                decorator_kwargs = self.kwargs
+                decorator_args = self.decorator_args
+                decorator_kwargs = self.decorator_kwargs
                 self.wrapped_call = "__call__"
 
-                if self.is_possible_wrap_call(*self.args, **self.kwargs):
+                if self.is_possible_wrap_call(*self.decorator_args, **self.decorator_kwargs):
                     self.log("__new__ could be a wrap call also")
-                    #pout.v(args, kwargs, self.args, self.kwargs)
 
                     # this is the tough one, we have some possibilities:
                     # 1. the __new__ call contained a callback or class passed to the decorator 
@@ -160,9 +159,8 @@ class Decorator(object):
                     wrapped = args[0]
 
             else:
-                #pout.v(args, kwargs, self.args, self.kwargs)
                 self.log("__call__ arguments are not wrappable, so __new__ is the wrap call")
-                wrapped = self.args[0]
+                wrapped = self.decorator_args[0]
                 invoke = True
                 self.wrapped_call = "__new__"
 
