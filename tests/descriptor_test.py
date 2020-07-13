@@ -331,8 +331,10 @@ class PropertyTest(TestCase):
                 return 1
 
         b = Bar()
-        with self.assertRaises(ValueError):
+        with testdata.capture() as c:
             b.che
+        self.assertTrue("This error is lost" in c)
+
         with self.assertRaises(KeyError):
             b.baz
 

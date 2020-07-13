@@ -220,18 +220,27 @@ class Decorator(object):
         :param **log_options: 
             level -- something like logging.DEBUG
             prefix -- will be prepended to format_str, defaults to [<CLASS_NAME>]
+            exc_info -- boolean, passed to the logger to log stack trace
         """
         if isinstance(format_str, Exception):
             logger.exception(format_str, *format_args)
         else:
-            log_level = log_options.get('level', logging.DEBUG)
+            log_level = log_options.pop('level', logging.DEBUG)
+            if is_py2:
+                if isinstance(log_level, basestring):
+                    log_level = logging._levelNames.get(log_level.upper())
+
+            else:
+                if log_level not in logging._levelToName:
+                    log_level = logging._nameToLevel.get(log_level.upper())
+
             if logger.isEnabledFor(log_level):
-                log_prefix = log_options.get('prefix', "[{}]".format(self.__class__.__name__))
+                log_prefix = log_options.pop('prefix', "[{}]".format(self.__class__.__name__))
                 format_str = "{} {}".format(log_prefix, format_str)
                 if format_args:
-                    logger.log(log_level, format_str.format(*format_args))
+                    logger.log(log_level, format_str.format(*format_args), **log_options)
                 else:
-                    logger.log(log_level, format_str)
+                    logger.log(log_level, format_str, **log_options)
 
 
     def decorate_func(self, func, *decorator_args, **decorator_kwargs):

@@ -127,14 +127,17 @@ class property(FuncDecorator):
 
             except AttributeError as e:
                 # if there is a __getattr__ then this AttributeError could get
-                # swallowed and so let's reraise it as a ValueError
+                # swallowed and so let's log it before raising it
                 # fixes https://github.com/Jaymon/decorators/issues/4
                 if hasattr(instance, "__getattr__"):
-                    exc_info = sys.exc_info()
-                    reraise(ValueError, e, exc_info[2])
-
-                else:
-                    raise
+                    self.log(e)
+                raise
+                # swallowed and so let's reraise it as a ValueError
+#                     exc_info = sys.exc_info()
+#                     reraise(ValueError, e, exc_info[2])
+# 
+#                 else:
+#                     raise
 
         else:
             raise AttributeError("Unreadable attribute")
