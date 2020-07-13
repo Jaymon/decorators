@@ -387,8 +387,12 @@ class FuncDecoratorTest(TestCase):
         def bar(*args, **kwargs):
             return 1
 
-        r = bar()
-        self.assertEqual(1, r)
+        r1 = bar()
+        self.assertEqual(1, r1)
+
+        r2 = bar("bar", "che")
+        self.assertEqual(1, r2)
+        self.assertEqual(r1, r2)
 
     def test_params_init_on_function(self):
         class dec(FuncDecorator):

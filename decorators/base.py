@@ -126,8 +126,8 @@ class Decorator(object):
 
         elif self.wrapped_call == "__new__":
             self.log("__new__ is the wrap call")
-            decorator_args = args
-            decorator_kwargs = kwargs
+            decorator_args = ()
+            decorator_kwargs = {}
             wrapped = self.decorator_args[0]
             invoke = True
 
