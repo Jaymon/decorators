@@ -47,6 +47,8 @@ class deprecated(Decorator):
     """Mark function/class as deprecated
 
     python has to be ran with -W flag to see warnings
+
+    https://stackoverflow.com/a/30253848/5006
     """
     def find_definition(self, o, callback):
         src_line = 0

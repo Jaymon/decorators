@@ -1,5 +1,9 @@
 # Decorators
 
+As of January 19, 2023 I've moved this code into [Datatypes](https://github.com/Jaymon/datatypes), this will continue to work, but further development and features will continue in the Datatypes submodule.
+
+-----
+
 ## The problem
 
 Python has a few forms for decorators, you can have a plain simple decorator, with no arguments:
